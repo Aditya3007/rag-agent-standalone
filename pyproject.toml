@@ -9,29 +9,25 @@ description = "Standalone domain-routing RAG agent (pubmedqa/covidqa/finqa/tatqa
 requires-python = ">=3.10"
 readme = "README.md"
 dependencies = [
-    "sentence-transformers>=2.7.0",
-    "faiss-cpu>=1.8.0",
-    "numpy>=1.26.0",
-    "pyyaml>=6.0.1",
-    "rank_bm25>=0.2.2",
-    "torch>=2.2.0",
-    "datasets>=2.19.0",
-    "nltk>=3.8.1",
-    "groq>=0.9.0",
-    "openai>=1.30.0",
-    "python-dotenv>=1.0.1",
-    "gradio>=4.36.0",
-    "pandas>=2.2.0",
-]
-
-[project.optional-dependencies]
-dev = ["pytest>=7.4.0"]
-vercel = [
     "pyyaml>=6.0.1",
     "groq>=0.9.0",
     "openai>=1.30.0",
     "python-dotenv>=1.0.1",
     "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4.0"]
+full = [
+    "sentence-transformers>=2.7.0",
+    "faiss-cpu>=1.8.0",
+    "numpy>=1.26.0",
+    "rank_bm25>=0.2.2",
+    "torch>=2.2.0",
+    "datasets>=2.19.0",
+    "nltk>=3.8.1",
+    "gradio>=4.36.0",
+    "pandas>=2.2.0",
 ]
 
 [tool.setuptools.packages.find]

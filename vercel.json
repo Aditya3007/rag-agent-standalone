@@ -5,7 +5,9 @@
       "src": "api/vercel_agent.py",
       "use": "@vercel/python",
       "config": {
-        "installCommand": "pip install -r requirements.vercel.txt"
+        "runtime": "python3.12",
+        "maxLambdaSize": "50mb",
+        "installCommand": "pip install pyyaml groq openai python-dotenv requests"
       }
     }
   ],

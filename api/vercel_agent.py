@@ -4,30 +4,39 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 
-# Import only the minimal dependencies needed for the agent
-import requests
-from groq import Groq
-from openai import OpenAI
-
 class LightweightAgent:
     def __init__(self):
-        self.groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         self.retrieval_api_url = os.getenv("RAG_RETRIEVAL_API_URL")
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
         
     def health_check(self):
         return {
             "status": "ok",
             "retrieval_api_url": self.retrieval_api_url,
-            "retrieval_api_configured": bool(self.retrieval_api_url)
+            "retrieval_api_configured": bool(self.retrieval_api_url),
+            "groq_api_configured": bool(self.groq_api_key)
         }
     
     def ask(self, query):
-        # For now, return a simple response until retrieval API is set up
-        # This is a placeholder that will be replaced with actual implementation
+        # Placeholder implementation - will be enhanced with actual agent logic
+        # when retrieval API is available
+        if not self.retrieval_api_url:
+            return {
+                "domain": "pending",
+                "config_name": "pending",
+                "answer": "Retrieval API not configured. Please set RAG_RETRIEVAL_API_URL environment variable.",
+                "retrieved_docs": [],
+                "scores": {},
+                "rgb_scores": {},
+                "latencies": {}
+            }
+        
+        # This would call the retrieval API and process the response
+        # For now, return a simple response
         return {
             "domain": "pending",
             "config_name": "pending",
-            "answer": "Retrieval API not configured. Please set RAG_RETRIEVAL_API_URL environment variable.",
+            "answer": f"Retrieval API configured at {self.retrieval_api_url}. Full agent implementation pending.",
             "retrieved_docs": [],
             "scores": {},
             "rgb_scores": {},
