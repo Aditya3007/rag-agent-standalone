@@ -14,11 +14,11 @@
   "routes": [
     {
       "src": "/health",
-      "dest": "/api/vercel_agent.py"
+      "dest": "/api/vercel_agent.py/handler"
     },
     {
       "src": "/ask",
-      "dest": "/api/vercel_agent.py"
+      "dest": "/api/vercel_agent.py/handler"
     }
   ]
 }

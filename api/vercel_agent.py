@@ -52,12 +52,12 @@ def get_agent():
         agent = LightweightAgent()
     return agent
 
-def app(request):
+def handler(request):
     """
     Vercel serverless function handler
     """
     try:
-        # Get the path and method
+        # Get the path and method from the request
         path = request.get('path', '/')
         method = request.get('method', 'GET')
         
