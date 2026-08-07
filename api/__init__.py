@@ -20,10 +20,25 @@ def handler(request):
     Vercel serverless function handler
     """
     try:
-        # Get the method and body
-        method = request.get('method', 'POST')
+        # Get the path and method
+        path = request.get('path', '/')
+        method = request.get('method', 'GET')
         
-        if method == 'POST':
+        # Health check endpoint
+        if path == '/health' and method == 'GET':
+            retrieval_api_url = os.getenv("RAG_RETRIEVAL_API_URL")
+            return {
+                'statusCode': 200,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({
+                    "status": "ok",
+                    "retrieval_api_url": retrieval_api_url,
+                    "retrieval_api_configured": bool(retrieval_api_url)
+                })
+            }
+        
+        # Ask endpoint
+        elif path == '/ask' and method == 'POST':
             body = json.loads(request.get('body', '{}'))
             query = body.get('query')
             
@@ -52,9 +67,9 @@ def handler(request):
             }
         else:
             return {
-                'statusCode': 405,
+                'statusCode': 404,
                 'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({"error": "Method not allowed"})
+                'body': json.dumps({"error": "Not found"})
             }
             
     except Exception as e:

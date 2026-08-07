@@ -8,7 +8,11 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/health",
+      "dest": "/api/__init__.py"
+    },
+    {
+      "src": "/ask",
       "dest": "/api/__init__.py"
     }
   ]
