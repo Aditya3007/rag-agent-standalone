@@ -15,7 +15,7 @@ def get_agent():
         agent = RagAgent()
     return agent
 
-def handler(request):
+def app(request):
     """
     Vercel serverless function handler
     """
