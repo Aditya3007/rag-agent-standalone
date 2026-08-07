@@ -1,0 +1,130 @@
+# Pinned winning config for tatqa: tatqa_v1
+# (adapted from rag-experiments/tatqa-experiment/config/tatqa_v1.yaml,
+# which originally used the Ollama provider for generation. Ported here
+# to the Groq-hosted equivalent instead, so this domain needs no local
+# Ollama server: gpt-oss:20b -> openai/gpt-oss-20b (Groq hosts OpenAI's
+# gpt-oss models directly). reasoning_effort: low keeps gpt-oss's
+# chain-of-thought budget small so it doesn't eat into max_tokens — see
+# DefaultGenerationConfig.reasoning_effort.)
+mode: dev
+name: tatqa_v1
+
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
+# Per-config data processing (runs inside build_index, before chunking).
+# Attaches a short topically-relevant sentence from a non-table sibling
+# document to each generic table (one with no entity/company name in its
+# own text), so its embedding carries entity identity instead of looking
+# generically like any other company's table.
+data_processing:
+  steps:
+    - type: sibling_entity_context
+      config:
+        max_words: 20
+
+# finance_table_aware detects flattened list-of-lists table literals and
+# rewrites them as natural-language "column = value" sentences so the
+# dense encoder can embed row labels + values together.
+chunking:
+  type: finance_table_aware
+  config:
+    max_words: 300
+    overlap_sentences: 1
+    max_rows_per_table_chunk: 6
+
+embedding:
+  type: sentence_transformer
+  config:
+    model_name: moritzglnr/bge-base-financial-matryoshka
+    dimension: 768
+
+vector_store:
+  type: faiss
+  config:
+    dimension: 768
+
+retrieval:
+  # No query_transform: multi_query added zero measurable recall gain on
+  # this dataset (see rag-experiments/tatqa-experiment retrieval diagnostics).
+
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 75
+      - type: sparse
+        config:
+          top_k: 75
+
+  fusion:
+    type: rrf
+    config:
+      k: 10
+      top_k: 30
+
+  # Pull in sibling chunks from the same source sample before reranking.
+  expansion:
+    type: sibling
+    config:
+      max_siblings_per_result: 3
+      sample_index_key: sample_index
+
+  rerank:
+    type: cross_encoder
+    config:
+      model_name: BAAI/bge-reranker-v2-m3
+      top_k: 5
+
+generation:
+  strategy: default
+  provider: groq
+  config:
+    model: openai/gpt-oss-20b
+    temperature: 0.0
+    max_tokens: 3000
+    reasoning_effort: low
+
+    system_prompt: |
+      You are an expert financial analyst answering questions over financial reports, earnings disclosures, and corporate filings.
+
+      Your answer must be built ONLY from the retrieved context, and must be THOROUGH: state every fact, number, or table value in the context that is relevant to the question — not just the bare minimum needed for the final calculation. The evaluator measures both how many relevant facts you state (completeness/utilization) and whether every sentence you write is directly supported by the context (adherence), so both matter equally.
+
+      CRITICAL RULES:
+      1. Never narrate your own process. No "To find...", "I will examine...", "Relevant Evidence:", "Explanation:", or any sentence describing what you are doing.
+      2. Write each fact as its own short, complete sentence ending in a period, e.g. "X was 100 [Document 1]." Do NOT use a bulleted or dashed list — write plain consecutive sentences.
+      3. Every sentence must be either: (a) a fact or value quoted/paraphrased directly from the context with a [Document N] citation, or (b) an arithmetic step using only values already stated.
+      4. Be thorough, not minimal: state every related fact from the context, even ones not strictly required for the final number — e.g. both years being compared, related segment or line-item breakdowns, relevant definitions or footnotes.
+      5. Tables may appear as flattened "column = value" lists joined by semicolons. Extract exact cell values and use them.
+      6. Do not use outside financial knowledge. Do not make up numbers.
+      7. Before concluding the context is insufficient, check every table and document in the context for any value that relates to the question — the context often contains documents about several different companies or topics, but the correct data is usually present in at least one of them. Do not refuse just because some documents are irrelevant; scan all of them first.
+      8. The context may contain multiple documents discussing similarly-named items (e.g. the same segment name, line item, or award type) that belong to DIFFERENT companies or categories. Before using a value, verify it comes from the same document or narrative context as the entity/company/item actually named in the question — do not use a value just because its label matches, if it is discussed in a different document than the one identifying the entity in the question. If you cannot confidently match the right value to the right entity, say so rather than guessing.
+      9. Refuse ONLY when, after checking every document, none of them contain data that can be confidently matched to the entity/item in the question. In that case respond with exactly:
+         "The retrieved context does not provide sufficient information to answer this question."
+
+    user_prompt: |
+      Retrieved Context:
+      --------------------
+      {context}
+      --------------------
+
+      Question:
+      {query}
+
+      Answer as a sequence of plain declarative sentences (no bullets, no dashes, no headers):
+      1. One sentence per relevant fact or value from the context, each ending in a period and citing [Document N].
+      2. If a calculation is needed, one sentence with the formula and values, and one sentence with the result.
+      3. A final sentence stating the answer clearly.
+
+      Do not include any commentary about your own process — only factual and calculation sentences.
+
+      Only if the context truly contains no relevant financial data, respond with exactly:
+      "The retrieved context does not provide sufficient information to answer this question."

@@ -1,0 +1,30 @@
+# Shared TRACe evaluation config, used for every domain regardless of
+# which one a query is routed to ("the evaluator remains the same").
+# type/provider/model/temperature are identical across all 4 domains'
+# original rag-foundry experiment_configs/*.yaml. max_tokens differed
+# there (pubmedqa/covidqa: 2000, finqa/tatqa: 3000, to give the judge
+# enough room for longer financial answers/contexts) — 3000 is used here
+# for all domains so evaluation never gets cut short.
+evaluation:
+  type: trace
+  provider: groq
+  config:
+    model: llama-3.3-70b-versatile
+    temperature: 0.0
+    max_tokens: 3000
+
+# Supplementary RGB-benchmark-style scoring, reported alongside TRACe for
+# every answer. Unlike rag-foundry's original RGB evaluator (which scores
+# against RGB's own benchmark dataset's ground-truth/counterfactual
+# metadata), this runs purely on the agent's generated answer for
+# whichever domain/query it was given: rejection_detected and
+# factual_error_detected (keyword-based, plus optional LLM-judge variants
+# below) — no dependency on any dataset-specific ground truth.
+rgb:
+  type: rgb
+  provider: groq
+  config:
+    use_llm_judge: true
+    judge_model: llama-3.3-70b-versatile
+    judge_temperature: 0.0
+    judge_max_tokens: 500

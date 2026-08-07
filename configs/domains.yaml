@@ -1,0 +1,82 @@
+# Per-domain data loading/parsing/description, replacing what used to
+# come from rag-foundry's experiment_configs/*.yaml. All 4 domains load
+# from the same HuggingFace dataset (galileo-ai/ragbench), differing
+# only by subset/limit/parser/data_processing.
+
+domains:
+  pubmedqa:
+    config_file: pubmedqa.yaml
+    description: >
+      Biomedical and clinical research questions answered from PubMed
+      abstracts and medical research papers (e.g. drug mechanisms,
+      disease studies, clinical trial results, biological processes).
+    data_loader:
+      dataset_name: galileo-ai/ragbench
+      subset: pubmedqa
+      split: test
+      limit: 2450
+    data_parser: noop
+    data_processing:
+      steps:
+        - type: deduplication
+          config:
+            strategy: content_hash
+
+  covidqa:
+    config_file: covidqa.yaml
+    description: >
+      Questions about COVID-19 research literature: epidemiology, viral
+      biology, treatments, vaccines, and public health measures related
+      to the SARS-CoV-2 pandemic.
+    data_loader:
+      dataset_name: galileo-ai/ragbench
+      subset: covidqa
+      split: test
+      limit: 246
+    data_parser:
+      type: title_passage_combined
+      config:
+        include_labels: false
+    data_processing:
+      steps:
+        - type: deduplication
+          config:
+            strategy: content_hash
+
+  finqa:
+    config_file: finqa.yaml
+    description: >
+      Financial reasoning questions over corporate earnings reports,
+      SEC filings, and financial statements — often requiring numeric
+      calculations (growth rates, ratios, differences) from tables and
+      narrative financial text.
+    data_loader:
+      dataset_name: galileo-ai/ragbench
+      subset: finqa
+      split: test
+      limit: 2290
+    data_parser: noop
+    data_processing:
+      steps:
+        - type: deduplication
+          config:
+            strategy: content_hash
+
+  tatqa:
+    config_file: tatqa.yaml
+    description: >
+      Questions over financial tables and accompanying narrative text
+      in corporate filings (e.g. table-based line items, deferred
+      income, segment breakdowns), similar to finqa but with a strong
+      focus on structured tabular data with headings.
+    data_loader:
+      dataset_name: galileo-ai/ragbench
+      subset: tatqa
+      split: test
+      limit: 3340
+    data_parser: table_heading
+    data_processing:
+      steps:
+        - type: deduplication
+          config:
+            strategy: content_hash

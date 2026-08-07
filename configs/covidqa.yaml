@@ -1,0 +1,77 @@
+# Pinned winning config for covidqa: covidqa_title_aware_v3
+# (copied verbatim from rag-experiments/covidqa-experiment/config/covidqa_title_aware_v3.yaml)
+mode: dev
+name: covidqa_title_aware_v3
+
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
+chunking:
+  type: sentence
+  config:
+    max_words: 200
+    overlap_sentences: 1
+
+embedding:
+  type: sentence_transformer
+  config:
+    model_name: BAAI/bge-large-en-v1.5
+    dimension: 1024
+
+vector_store:
+  type: faiss
+  config:
+    dimension: 1024
+
+retrieval:
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 50
+      - type: sparse
+        config:
+          top_k: 50
+
+  fusion:
+    type: rrf
+    config:
+      k: 60
+
+  rerank:
+    type: cross_encoder
+    config:
+      model_name: BAAI/bge-reranker-v2-m3
+      top_k: 7
+
+generation:
+  strategy: default
+  provider: groq
+  config:
+    model: llama-3.3-70b-versatile
+    temperature: 0.0
+    max_tokens: 512
+
+    system_prompt: |
+      You are a biomedical question answering assistant.
+      Answer ONLY from the retrieved passages below.
+      Be concise but complete — include all relevant details from the passages that address the question.
+      Do NOT add information from your own knowledge.
+      Do NOT hedge with phrases like "based on general knowledge" or "it is well-established".
+      If the passages do not contain enough information, say "The provided context does not contain sufficient information to answer this question."
+
+    user_prompt: |
+      Passages:
+      {context}
+
+      Question: {query}
+
+      Answer (from passages only, include all relevant details):

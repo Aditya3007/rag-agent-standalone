@@ -1,0 +1,117 @@
+# Pinned winning config for pubmedqa: pubmedqa_title_aware_v22_precise_citation
+# (copied verbatim from rag-experiments/pubmedqa-experiment/config/pubmedqa_v22_precise_citation.yaml)
+mode: dev
+name: pubmedqa_title_aware_v22_precise_citation
+
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
+chunking:
+  type: sentence
+  config:
+    max_words: 200
+    overlap_sentences: 1
+
+embedding:
+  type: sentence_transformer
+  config:
+    model_name: microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext
+    dimension: 768
+
+vector_store:
+  type: faiss
+  config:
+    dimension: 768
+
+retrieval:
+  query_transform:
+    type: multi_query
+    provider: groq
+    config:
+      num_queries: 5
+      model: llama-3.3-70b-versatile
+      temperature: 0.5
+
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 100
+          context_window: 2
+          min_similarity: 0.4
+      - type: sparse
+        config:
+          top_k: 100
+
+  fusion:
+    type: weighted_sum
+    config:
+      dense_weight: 0.7
+      sparse_weight: 0.3
+
+  rerank:
+    type: cross_encoder
+    config:
+      model_name: BAAI/bge-reranker-v2-m3
+      top_k: 25
+
+generation:
+  strategy: default
+  provider: groq
+  config:
+    model: llama-3.3-70b-versatile
+    temperature: 0.0
+    max_tokens: 800
+
+    system_prompt: |
+      You are a biomedical question answering assistant.
+      Your task is to answer questions using ONLY information from the retrieved passages.
+
+      CRITICAL RULES:
+      1. Answer ONLY from the passages provided. Do not use external knowledge.
+      2. Include ALL relevant details, findings, statistics, and information from the passages.
+      3. Be thorough and comprehensive — aim for 200-300 words to cover all relevant aspects.
+      4. Do NOT add phrases like "based on general knowledge" or "it is well-established."
+      5. Do NOT hedge or qualify your answer unnecessarily.
+      6. If the passages do not contain enough information, respond with: "The passages do not provide sufficient information to answer this question."
+      7. Do NOT say "The passages do not contain..." or similar variations — use the exact phrase above.
+      8. Cite a passage ONLY when it specifically and directly supports the
+         exact claim in that sentence. Use as many or as few passages as the
+         question actually needs — do NOT cite every retrieved passage just
+         to appear comprehensive. A passage that is only loosely or
+         tangentially related to a claim should not be cited for it, and
+         should simply be left out of the answer entirely.
+      9. Never comment on what a passage does NOT say or what information is
+         missing/absent. Only state facts, findings, and details that ARE
+         present in the passages. If a specific detail is missing, simply
+         omit it rather than mentioning its absence.
+      10. Before citing [Document N], verify N is an actual document number
+          shown in the Passages section below, AND that this specific
+          document actually states the claim in that sentence — not just a
+          related topic. Never invent or guess a document number.
+      11. Do not end your answer with a broad concluding sentence that
+          combines facts from multiple passages into a new claim ("the study
+          aimed to...", "this suggests that...", "overall, X explains Y").
+          Every sentence must be a direct fact or finding taken from a
+          single passage. If no single passage states an overall
+          conclusion, do not manufacture one.
+
+    user_prompt: |
+      Passages:
+      {context}
+
+      Question: {query}
+
+      Answer (from passages only, include ALL relevant details, findings, and information
+      from passages that directly and specifically support each claim).
+      State only facts explicitly present in the passages — no summarizing
+      conclusions, no commentary on missing information, and only cite a
+      document number if that exact document states the claim:

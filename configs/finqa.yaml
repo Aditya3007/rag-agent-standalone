@@ -1,0 +1,115 @@
+# Pinned winning config for finqa: finqa_v8_strict_meta_free
+# (adapted from rag-experiments/finqa-experiment/config/finqa_v8_strict_meta_free.yaml,
+# which originally used the Ollama provider for generation + query_transform.
+# Ported here to the Groq-hosted equivalents instead, so this domain needs
+# no local Ollama server: gpt-oss:20b -> openai/gpt-oss-20b (Groq hosts
+# OpenAI's gpt-oss models directly), llama3.1:8b -> llama-3.1-8b-instant.
+# reasoning_effort: low keeps gpt-oss's chain-of-thought budget small so it
+# doesn't eat into max_tokens — see DefaultGenerationConfig.reasoning_effort.)
+mode: dev
+name: finqa_v8_strict_meta_free
+
+cache:
+  enabled: true
+  cache_dir: ./cache
+
+providers:
+  groq:
+    type: groq
+    api_key_env: GROQ_API_KEY
+    params:
+      cooldown_seconds: 60
+
+chunking:
+  type: sentence
+  config:
+    max_words: 300
+    overlap_sentences: 1
+
+embedding:
+  type: sentence_transformer
+  config:
+    model_name: moritzglnr/bge-base-financial-matryoshka
+    dimension: 768
+
+vector_store:
+  type: faiss
+  config:
+    dimension: 768
+
+retrieval:
+  query_transform:
+    type: multi_query
+    provider: groq
+    config:
+      num_queries: 3
+      model: llama-3.1-8b-instant
+      temperature: 0.3
+
+  search:
+    searches:
+      - type: dense
+        config:
+          top_k: 100
+      - type: sparse
+        config:
+          top_k: 100
+
+  fusion:
+    type: rrf
+    config:
+      k: 60
+
+  rerank:
+    type: cross_encoder
+    config:
+      model_name: BAAI/bge-reranker-v2-m3
+      top_k: 10
+
+generation:
+  strategy: default
+  provider: groq
+  config:
+    model: openai/gpt-oss-20b
+    temperature: 0.0
+    max_tokens: 1500
+    reasoning_effort: low
+
+    system_prompt: |
+      You are an expert financial analyst answering questions over financial reports, earnings disclosures, and corporate filings.
+
+      Your answer must be built ONLY from the retrieved context. The evaluator checks that every sentence you write is directly supported by the context.
+
+      CRITICAL RULES:
+      1. Output only facts, direct quotes, and calculations derived from the context.
+      2. Do NOT write meta commentary: no "To find...", "I will examine...", "Relevant Evidence:", "Explanation:", or any sentence that describes your own process.
+      3. Every claim must either be a direct quote from the context or an arithmetic step using values from the context.
+      4. Cite sources using [Document N] immediately after each fact or calculation step.
+      5. If a calculation is needed, show the exact values and formula; the formula itself must use only context values.
+      6. Tables may appear as flattened lists. Extract exact cell values and use them.
+      7. Do not use outside financial knowledge. Do not make up numbers.
+      8. Refuse ONLY when the context contains no relevant financial data. In that case respond with exactly:
+         "The retrieved context does not provide sufficient information to answer this question."
+
+    user_prompt: |
+      Retrieved Context:
+      --------------------
+      {context}
+      --------------------
+
+      Question:
+      {query}
+
+      Answer using the retrieved context only. Follow these steps:
+      1. Identify the relevant facts, numbers, or table cells.
+      2. Quote or cite the exact values you are using and refer to [Document N].
+      3. Show any required calculations with values taken from the context.
+      4. Provide the final answer clearly.
+
+      Do NOT include meta commentary ("To find...", "I will examine...", "Relevant Evidence:", etc.).
+      Every sentence must be either a fact from the context, a direct quote, or a calculation based on context values.
+
+      Only if the context truly contains no relevant financial data respond with:
+      "The retrieved context does not provide sufficient information to answer this question."
+
+      Answer:
