@@ -26,6 +26,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4.0"]
+vercel = [
+    "pyyaml>=6.0.1",
+    "groq>=0.9.0",
+    "openai>=1.30.0",
+    "python-dotenv>=1.0.1",
+    "requests>=2.31.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["rag_agent*"]

@@ -2,18 +2,21 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/__init__.py",
-      "use": "@vercel/python"
+      "src": "api/vercel_agent.py",
+      "use": "@vercel/python",
+      "config": {
+        "installCommand": "pip install -r requirements.vercel.txt"
+      }
     }
   ],
   "routes": [
     {
       "src": "/health",
-      "dest": "/api/__init__.py"
+      "dest": "/api/vercel_agent.py"
     },
     {
       "src": "/ask",
-      "dest": "/api/__init__.py"
+      "dest": "/api/vercel_agent.py"
     }
   ]
 }
